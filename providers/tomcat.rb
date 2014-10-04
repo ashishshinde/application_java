@@ -25,7 +25,7 @@ action :before_compile do
 
   unless new_resource.restart_command
     new_resource.restart_command do
-      run_context.resource_collection.find(:service => "tomcat").run_action(:restart)
+      run_context.resource_collection.find(:service => "tomcat#{node['tomcat']['base_version']}").run_action(:restart)
     end
   end
 
@@ -42,10 +42,16 @@ action :before_deploy do
     action :delete
     not_if "test -L #{node['tomcat']['context_dir']}/ROOT.xml"
   end
+  
+  # remove application's unpacked folder
+  directory "#{node['tomcat']['webapp_dir']}/#{new_resource.application.name}" do
+    recursive true
+    action :delete
+  end
 
   link "#{node['tomcat']['context_dir']}/#{new_resource.application.name}.xml" do
     to "#{new_resource.application.path}/shared/#{new_resource.application.name}.xml"
-    notifies :restart, resources(:service => "tomcat")
+    notifies :restart, resources(:service => "tomcat#{node['tomcat']['base_version']}")
   end
 end
 

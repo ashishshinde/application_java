@@ -17,7 +17,7 @@
 # limitations under the License.
 #
 
-include Chef::DSL::IncludeRecipe
+include Chef::Mixin::LanguageIncludeRecipe
 
 action :before_compile do
 end
@@ -69,7 +69,7 @@ def create_context_file
       :app => new_resource.application.name,
       :host => host,
       :database => new_resource.database,
-      :war => "#{new_resource.path}/current/#{new_resource.war || ::File.basename(new_resource.application.repository)}"
+      :war => "#{new_resource.path}/current/#{new_resource.war || new_resource.application.name + '.war'}"
     )
   end
 end

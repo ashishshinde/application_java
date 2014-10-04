@@ -24,10 +24,12 @@ class Chef
       class Deploy < Chef::Provider::File
 
         def initialize(new_resource, run_context)
-          @deploy_resource = new_resource
-          @new_resource = Chef::Resource::File.new(@deploy_resource.name)
-          @new_resource.path ::File.join(@deploy_resource.destination, ::File.basename(@deploy_resource.repository))
+         @deploy_resource = new_resource
+          @war = @deploy_resource.name + ".war"
+          @new_resource = Chef::Resource::File.new(@war)
+          @new_resource.path ::File.join(@deploy_resource.destination, @war)
           @new_resource.content @deploy_resource.repository
+
           unless @deploy_resource.revision == "HEAD"
             @new_resource.checksum @deploy_resource.revision
           end
@@ -38,6 +40,9 @@ class Chef
           @current_resource = nil
           @run_context = run_context
           @converge_actions = nil
+          @synched = false
+          @content_class = Chef::Provider::File::Content
+          @deployment_strategy = Chef::FileContentManagement::Deploy.strategy(true)
         end
 
         def target_revision
@@ -49,10 +54,15 @@ class Chef
         alias :revision_slug :target_revision
 
         def action_sync
+          if !@synched
+            create_dir_unless_exists(@deploy_resource.destination)
+            purge_old_staged_files
+            action_create
+            @new_resource.checksum checksum(@new_resource.path)
+            @synched = true
+          end
+
           create_dir_unless_exists(@deploy_resource.destination)
-          purge_old_staged_files
-          action_create
-          @new_resource.checksum checksum(@new_resource.path)
         end
 
         def set_content
